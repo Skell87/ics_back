@@ -12,22 +12,35 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
 
+APP_NAME = os.getenv("FLY_APP_NAME", None)
+
+DATABASE_PATH = os.getenv("DATABASE_PATH", None)
+
+CSRF_TRUSTED_ORIGINS = [f"https://{APP_NAME}.fly.dev"]
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7=q7$poz2jju_=y8^asl^l_-8lgcjowta2=)(lq9ao0v68(5jp'
+SECRET_KEY = os.getenv('SECRET_KEY', 'a default-value for local dev')
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
+if ENVIRONMENT == 'local':
+  DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', f"{APP_NAME}.fly.dev"]
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+if APP_NAME:
+  MEDIA_ROOT = '/mnt/volume_mount/media/'
 
 # Application definition
 
@@ -88,16 +101,29 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     
 ]
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    'default': {
+        'BACKEND': "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
 
 CORS_ALLOWED_ORIGINS = ['http://localhost:8080', 'http://localhost:8000', 'http://localhost:5173',]
 
@@ -140,11 +166,12 @@ WSGI_APPLICATION = 'ics_back_project.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+	'default': {
+    		'ENGINE': 'django.db.backends.sqlite3',
+    		'NAME': DATABASE_PATH if APP_NAME else BASE_DIR / 'db.sqlite3',
+	}
 }
+
 
 
 # Password validation
