@@ -47,15 +47,6 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
 # --------------------------------------------------------------------------------------
 
 # models for inventory items and adding quantity to them.
-class InventoryItems(models.Model):
-    name = models.TextField(max_length=255)
-    make = models.TextField(max_length=255)
-    model = models.TextField(max_length=255)
-    color = models.TextField(max_length=255)
-    notes = models.TextField(max_length=255)
-
-    def __str__(self):
-        return f'name: {self.name}, make: {self.make}, model: {self.model}, color: {self.color}'
     
 
     # def __str__(self):
@@ -74,28 +65,38 @@ class InventoryItems(models.Model):
 # +---------------------+          | - section_id: FK    |          | - sub_section_id: FK    |
 #                                  +---------------------+          +-------------------------+
 
+class InventoryItems(models.Model):
+    name = models.TextField(max_length=255)
+    make = models.TextField(max_length=255)
+    model = models.TextField(max_length=255)
+    color = models.TextField(max_length=255)
+    notes = models.TextField(max_length=255)
+
+    def __str__(self):
+        return f'name: {self.name}, make: {self.make}, model: {self.model}, color: {self.color}, notes: {self.notes}'
 
 class WarehouseSection(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=25)
 
     def __str__(self):
         return self.name
 
 class WarehouseSubSection(models.Model):
-    name = models.CharField(max_length=255)
-    section = models.ForeignKey(WarehouseSection, on_delete=models.CASCADE)
+    name = models.CharField(max_length=25)
+    section = models.ForeignKey(WarehouseSection, on_delete=models.CASCADE, related_name='sub_sections')
 
     def __str__(self):
         return self.name
 
 class WarehouseSubSubSection(models.Model):
     name = models.CharField(max_length=255)
-    sub_section = models.ForeignKey(WarehouseSubSection, on_delete=models.CASCADE)
+    sub_section = models.ForeignKey(WarehouseSubSection, on_delete=models.CASCADE, related_name='sub_sub_sections')
 
     def __str__(self):
         return self.name
 
 class InventoryDetails(models.Model):
-    subsub = models.ForeignKey(WarehouseSubSubSection, on_delete=models.CASCADE)
-    inventory_item = models.ForeignKey(InventoryItems, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=0)
+    inventory_item = models.ForeignKey(InventoryItems, on_delete=models.CASCADE)
+    sub_sub_section = models.ForeignKey(WarehouseSubSubSection, on_delete=models.CASCADE, related_name='inventory_details')
+

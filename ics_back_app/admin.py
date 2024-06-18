@@ -6,3 +6,7 @@ from .models import *
 # admin.site.register(Warehouse)
 # admin.site.register(Division)
 admin.site.register(InventoryItems)
+admin.site.register(WarehouseSection)
+admin.site.register(WarehouseSubSection)
+admin.site.register(WarehouseSubSubSection)
+admin.site.register(InventoryDetails)
