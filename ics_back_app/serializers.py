@@ -21,21 +21,35 @@ class WarehouseSectionSerializer(serializers.ModelSerializer):
         model = WarehouseSection
         # fields = ['name']
         fields = '__all__'
-    
+
+class WarehouseSubSectionReadSerializer(serializers.ModelSerializer):
+    section = WarehouseSectionSerializer(read_only=True)
+    class Meta:
+        model = WarehouseSubSection
+        # fields = ['name', 'section']
+        fields = '__all__'
+
+
 class WarehouseSubSectionSerializer(serializers.ModelSerializer):
-    section = WarehouseSectionSerializer()
     class Meta:
         model = WarehouseSubSection
         # fields = ['name', 'section']
         fields = '__all__'
 
 # lowest level warehouse section SUB SUB SECTION
-class WarehouseSubSubSectionSerializer(serializers.ModelSerializer):
-    # sub_section = WarehouseSubSectionSerializer()
+class WarehouseSubSubSectionReadSerializer(serializers.ModelSerializer):
+    sub_section = WarehouseSubSectionReadSerializer(read_only=True)
     class Meta:
         model = WarehouseSubSubSection
         # fields = ['name', 'sub_section']
         fields = '__all__'
+
+class WarehouseSubSubSectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WarehouseSubSubSection
+        # fields = ['name', 'sub_section']
+        fields = '__all__'
+
 
 class InventoryItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -43,10 +57,18 @@ class InventoryItemSerializer(serializers.ModelSerializer):
         # fields = ['name', 'make', 'model', 'color', 'notes']
         fields = '__all__'
 
+class InventoryDetailReadSerializer(serializers.ModelSerializer):
+    inventory_item = InventoryItemSerializer(read_only=True)
+    sub_sub_section = WarehouseSubSubSectionReadSerializer(read_only=True)
+
+    class Meta:
+        model = InventoryDetails
+        # fields = ['quantity', 'inventory_item', 'sub_sub_section_id']
+        fields = '__all__'    
+
 class InventoryDetailSerializer(serializers.ModelSerializer):
     inventory_item = InventoryItemSerializer()
-    sub_sub_section = serializers.PrimaryKeyRelatedField(queryset=WarehouseSubSubSection.objects.all())
-    
+
     class Meta:
         model = InventoryDetails
         # fields = ['quantity', 'inventory_item', 'sub_sub_section_id']
@@ -57,8 +79,6 @@ class InventoryDetailSerializer(serializers.ModelSerializer):
         sub_sub_section_id = validated_data.pop('sub_sub_section')
 
         inventory_item, _ = InventoryItems.objects.get_or_create(**inventory_item_data)
-
-        # sub_sub_section, _ = WarehouseSubSubSection.objects.get_or_create(id=sub_sub_section_id)
 
         inventory_detail = InventoryDetails.objects.create(
             quantity=validated_data['quantity'],

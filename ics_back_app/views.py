@@ -99,33 +99,11 @@ def inventory_detail_list(request):
         print("Request data:", request.data)
         inventory_details = InventoryDetails.objects.all()
         
-        serializer = InventoryDetailSerializer(inventory_details, many=True)
+        serializer = InventoryDetailReadSerializer(inventory_details, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     elif request.method == 'POST':
         print('INVENTORY DETAIL LIST: POST: REQUEST: ', request.data)
-        # sss = WarehouseSubSubSection.objects.get(pk=request.data['sub_sub_section'])
-        # sub_section = WarehouseSubSection.objects.get(pk = sss.sub_section.pk)
-        # section = WarehouseSection.objects.get(pk=sub_section.section.pk)
-        # section_dict = {
-        #     'name': section.name
-        # }
-        # sub_section_dict = {
-        #     'name': sub_section.name,
-        #     'section': section_dict
-        # }
-        # sss_dict = {
-        #     'name': sss.name,
-        #     'sub_section': sub_section_dict
-        # }
-        # print('BLAMMO: SSS: ', sss_dict)
-
-        # data = {
-        #     'quantity': request.data['quantity'],
-        #     'sub_sub_section': sss_dict,
-        #     'inventory_item': request.data['inventory_item']
-        # }
-
         serializer = InventoryDetailSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
