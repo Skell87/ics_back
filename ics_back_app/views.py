@@ -118,6 +118,8 @@ def add_warehouse_sub_section(request):
         subsections = WarehouseSubSection.objects.filter(section_id=section_id)
         serializer = WarehouseSubSectionSerializer(subsections, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    # if request.method == 'POST':
 
 @api_view(['GET'])
 @permission_classes([])
