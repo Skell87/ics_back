@@ -35,63 +35,6 @@ def register_user(request):
 
 
 
-# -------------------------------------------------------------------------
-# item views::::::::::::::::::::
-
-# use this or the bottom, whichever works
-# new stuff
-# @api_view(['POST'])
-# @permission_classes([])
-# def add_inventory_items(request):
-    
-#         serializer = InventoryItemSerializer(data=request.data)
-#         # serializer.is_valid()
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# saves inventory items to the back
-# @api_view(['POST'])
-# @permission_classes([])
-# def add_inventory_items(request):
-#     item_data = {
-#         'name': request.data.get('name'),
-#         'make': request.data.get('make'),
-#         'model': request.data.get('model'),
-#         'color': request.data.get('color'),
-#         'notes': request.data.get('notes'),
-#     }
-#     quantity = request.data.get('quantity')
-
-#     item_serializer = InventoryItemSerializer(data=item_data)
-#     if item_serializer.is_valid():
-#         item_instance = item_serializer.save()
-
-#         details_data = {
-#             'sub_sub_section': request.data.get('subsubsection'),  # Adjust this based on your logic
-#             'inventory_item': item_instance.id,
-#             'quantity': quantity,
-#         }
-#         details_serializer = InventoryDetailSerializer(data=details_data)
-#         if details_serializer.is_valid():
-#             details_serializer.save()
-#             return Response(item_serializer.data, status=status.HTTP_201_CREATED)
-#         else:
-#             item_instance.delete()  # Rollback if details creation fails
-#             return Response(details_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-#     else:
-#         return Response(item_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-# gets inventory items from the back to the front
-# @api_view(['GET'])
-# @permission_classes([])
-# def get_inventory_items(requst):
-#     items = InventoryDetails.objects.select_related('inventory_item', 'sub_sub_section', 'sub_sub_section__sub_section', 'sub_sub_section__sub_section__section').all
-#     serializer = InventoryDetailSerializer(items, many=True)
-#     return Response(serializer.data, status=status.HTTP_200_OK)
-
-
 @api_view(['GET', 'POST'])
 @permission_classes([])
 def inventory_detail_list(request):
@@ -111,28 +54,7 @@ def inventory_detail_list(request):
         print('INVENTORY DETAIL LIST: ERROR: ', serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-# @api_view(['DELETE'])
-# @permission_classes([])
-# def delete_inventory_item(request, pk):
-#     try:
-#         inventory_item = InventoryDetails.objects.get(pk=pk)
-#     except InventoryDetails.DoesNotExist:
-#         return Response({"error": "Quantity to delete exceeds available quantity"}, status=status.HTTP_400_BAD_REQUEST)
-    
-#     serializer = DeleteInventoryItemSerializer(data=request.data)
-#     if serializer.is_valid():
-#         quantity_to_delete = serializer.validated_data['quantity_to_delete']
-#         if quantity_to_delete > inventory_item.quantity:
-#             return Response({'error': "quantity to delete exceeds available quantity"}, status=status.HTTP_400_BAD_REQUEST)
-        
-#         inventory_item.quantity -= quantity_to_delete
-#         if inventory_item.quantity == 0:
-#             inventory_item.delete()
-#         else:
-#             inventory_item.save()
-        
-#         return Response({'message': 'Inventory item updated successfully'}, status=status.HTTP_200_OK)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['DELETE'])
 @permission_classes([])
@@ -188,13 +110,14 @@ def add_warehouse_section(request):
 @api_view(['GET'])
 @permission_classes([])
 def add_warehouse_sub_section(request):
-    section_id = request.query_params.get('section_id')
-    if not section_id:
-        return Response({'error': 'section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    subsections = WarehouseSubSection.objects.filter(section_id=section_id)
-    serializer = WarehouseSubSectionSerializer(subsections, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    if request.method == 'GET':
+        section_id = request.query_params.get('section_id')
+        if not section_id:
+            return Response({'error': 'section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        subsections = WarehouseSubSection.objects.filter(section_id=section_id)
+        serializer = WarehouseSubSectionSerializer(subsections, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 @permission_classes([])
@@ -207,9 +130,3 @@ def add_warehouse_sub_sub_section(request):
     serializer = WarehouseSubSubSectionSerializer(subsubsections, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
     
-
-# @api_view(['GET'])
-# def get_inventory_details(request):
-#     inventory_details = InventoryDetails.objects.all()
-#     serializer = InventoryDetailSerializer(inventory_details, many=True)
-#     return Response(serializer.data)
