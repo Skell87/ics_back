@@ -125,7 +125,7 @@ STORAGES = {
 }
 
 
-CORS_ALLOWED_ORIGINS = ['http://localhost:8080', 'http://localhost:8000', 'http://localhost:5173','https://ics-back.fly.dev']
+CORS_ALLOWED_ORIGINS = ['http://localhost:8080', 'http://localhost:8000', 'http://localhost:5173','https://ics-back.fly.dev', 'https://packmule.vercel.app']
 
 CORS_ALLOW_METHODS = [
     'GET',
