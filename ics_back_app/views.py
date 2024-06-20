@@ -88,6 +88,21 @@ def delete_inventory_item(request, pk):
         return Response({"error": "quantity_to_delete must be a valid integer"}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['PUT'])
+@permission_classes([])
+def update_inventory_item(request, pk):
+    print('update info:', request.data)
+    try:
+        inventory_detail = InventoryDetails.objects.get(pk=pk)
+    except InventoryDetails.DoesNotExist:
+        return Response({'error': 'Inventory detail not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    serializer = InventoryDetailUpdateSerializer(inventory_detail, data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # ====================================================================================================
 # these are currently for populating the dropdowns.
