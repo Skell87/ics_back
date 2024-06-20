@@ -93,3 +93,28 @@ class DeleteInventoryItemSerializer(serializers.Serializer):
     quantity_to_delete = serializers.IntegerField()
 
 
+class InventoryDetailUpdateSerializer(serializers.ModelSerializer):
+    inventory_item = InventoryItemSerializer()
+    sub_sub_section_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = InventoryDetails
+        fields = ['quantity', 'inventory_item', 'sub_sub_section_id']
+
+    def update(self, instance, validated_data):
+        inventory_item_data = validated_data.pop('inventory_item')
+        sub_sub_section_id = validated_data.pop('sub_sub_section_id')
+
+        if inventory_item_data:
+            InventoryItemSerializer().update(instance.inventory_item, inventory_item_data)
+
+        if instance.sub_sub_section.id != sub_sub_section_id:
+            instance.sub_sub_section = WarehouseSubSubSection.objects.get(id=sub_sub_section_id)
+
+        instance.quantity = validated_data.get('quantity', instance.quantity)
+        
+        instance.save()
+        return instance
+
+
+
