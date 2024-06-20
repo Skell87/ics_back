@@ -98,6 +98,7 @@ def add_warehouse_section(request):
         sections = WarehouseSection.objects.all()
         serializer = WarehouseSectionSerializer(sections, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
     elif request.method == 'POST':
         print("Received POST request data:", request.data)
         serializer = WarehouseSectionSerializer(data=request.data)
@@ -107,7 +108,8 @@ def add_warehouse_section(request):
         else:
             return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
         
-@api_view(['GET'])
+        
+@api_view(['GET', 'POST'])
 @permission_classes([])
 def add_warehouse_sub_section(request):
     if request.method == 'GET':
@@ -119,16 +121,64 @@ def add_warehouse_sub_section(request):
         serializer = WarehouseSubSectionSerializer(subsections, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    # if request.method == 'POST':
+    elif request.method == 'POST':
+        serializer = WarehouseSubSectionSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
+
+@api_view(['GET', 'POST'])
 @permission_classes([])
 def add_warehouse_sub_sub_section(request):
-    sub_section_id = request.query_params.get('sub_section_id')
-    if not sub_section_id:
-        return Response({'error': 'sub_section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+    if request.method == 'GET':
+        sub_section_id = request.query_params.get('sub_section_id')
+        if not sub_section_id:
+            return Response({'error': 'sub_section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        subsubsections = WarehouseSubSubSection.objects.filter(sub_section_id=sub_section_id)
+        serializer = WarehouseSubSubSectionSerializer(subsubsections, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
-    subsubsections = WarehouseSubSubSection.objects.filter(sub_section_id=sub_section_id)
-    serializer = WarehouseSubSubSectionSerializer(subsubsections, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    elif request.method =='POST':
+        serializer = WarehouseSubSubSectionSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+@permission_classes([])
+def delete_warehouse_section(request, section_id):
+    # section_id = request.query_params.get('section_id')
+    # if not section_id:
+    #     return Response({'error': 'section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        section = WarehouseSection.objects.get(pk=section_id)
+        section.delete()
+        return Response({'message': 'Section deleted successfully'}, status=status.HTTP_200_OK)
+    except WarehouseSection.DoesNotExist:
+        return Response({'error', 'section not found'}, status=status.HTTP_404_NOT_FOUND)
     
+@api_view(['DELETE'])
+@permission_classes([])
+def delete_warehouse_sub_section(request, sub_section_id):
+    print('id:', sub_section_id)
+    try:
+        subsection = WarehouseSubSection.objects.get(pk=sub_section_id)
+        subsection.delete()
+        return Response({'message': 'SubSection deleted successfully'}, status=status.HTTP_200_OK)
+    except WarehouseSubSection.DoesNotExist:
+        return Response({'error', 'sub section not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+@permission_classes([])
+def delete_warehouse_sub_sub_section(request, sub_sub_section_id):
+    try:
+        subsubsection = WarehouseSubSubSection.objects.get(pk=sub_sub_section_id)
+        subsubsection.delete()
+        return Response({'message': 'SubSubSection deleted successfully'}, status=status.HTTP_200_OK)
+    except WarehouseSubSubSection.DoesNotExist:
+        return Response({'error', 'sub sub section not found'}, status=status.HTTP_400_BAD_REQUEST)
