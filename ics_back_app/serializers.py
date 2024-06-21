@@ -22,6 +22,16 @@ class WarehouseSectionSerializer(serializers.ModelSerializer):
         # fields = ['name']
         fields = '__all__'
 
+        def create(self, validated_data):
+            user = self.context['request'].user
+            section = WarehouseSection.objects.create(user=user, **validated_data)
+            return section
+        
+        def update(self, instance, validated_data):
+            instance.name = validated_data.get('name', instance.name)
+            instance.save()
+            return instance
+
 class WarehouseSubSectionReadSerializer(serializers.ModelSerializer):
     section = WarehouseSectionSerializer(read_only=True)
     class Meta:
@@ -35,6 +45,18 @@ class WarehouseSubSectionSerializer(serializers.ModelSerializer):
         model = WarehouseSubSection
         # fields = ['name', 'section']
         fields = '__all__'
+        extra_kwargs = {
+            'user': {'required': False}
+        }
+    
+    def create(self, validated_data):
+        user = self.context['request'].user
+        validated_data['user'] = user
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('user', None)
+        return super().update(instance, validated_data)
 
 # lowest level warehouse section SUB SUB SECTION
 class WarehouseSubSubSectionReadSerializer(serializers.ModelSerializer):
@@ -49,13 +71,27 @@ class WarehouseSubSubSectionSerializer(serializers.ModelSerializer):
         model = WarehouseSubSubSection
         # fields = ['name', 'sub_section']
         fields = '__all__'
+        extra_kwargs = {
+            'user': {'required': False}
+        }
 
+    def create(self, validated_data):
+        user = self.context['request'].user
+        validated_data['user'] = user
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('user', None)
+        return super().update(instance, validated_data)
 
 class InventoryItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = InventoryItems
         # fields = ['name', 'make', 'model', 'color', 'notes']
         fields = '__all__'
+        extra_kwargs = {
+            'user': {'required': False}
+        }
 
 class InventoryDetailReadSerializer(serializers.ModelSerializer):
     inventory_item = InventoryItemSerializer(read_only=True)
@@ -73,14 +109,19 @@ class InventoryDetailSerializer(serializers.ModelSerializer):
         model = InventoryDetails
         # fields = ['quantity', 'inventory_item', 'sub_sub_section_id']
         fields = '__all__'
+        extra_kwargs = {
+            'user': {'required': False}
+        }
                   
     def create(self, validated_data):
+        user = self.context['request'].user
         inventory_item_data = validated_data.pop('inventory_item')
         sub_sub_section_id = validated_data.pop('sub_sub_section')
 
-        inventory_item, _ = InventoryItems.objects.get_or_create(**inventory_item_data)
+        inventory_item, _ = InventoryItems.objects.get_or_create(**inventory_item_data, user=user)
 
         inventory_detail = InventoryDetails.objects.create(
+            user=user,
             quantity=validated_data['quantity'],
             inventory_item=inventory_item,
             sub_sub_section=sub_sub_section_id
@@ -102,13 +143,18 @@ class InventoryDetailUpdateSerializer(serializers.ModelSerializer):
         fields = ['quantity', 'inventory_item', 'sub_sub_section_id']
 
     def update(self, instance, validated_data):
+        user = self.context.get('user')
         inventory_item_data = validated_data.pop('inventory_item')
         sub_sub_section_id = validated_data.pop('sub_sub_section_id')
+
+        if instance.user != user:
+            raise serializers.ValidationError("You do not have permission to update this inventory detail.")
 
         if inventory_item_data:
             InventoryItemSerializer().update(instance.inventory_item, inventory_item_data)
 
         if instance.sub_sub_section.id != sub_sub_section_id:
+            sub_sub_section = WarehouseSubSubSection.objects.get(id=sub_sub_section_id, user=user)
             instance.sub_sub_section = WarehouseSubSubSection.objects.get(id=sub_sub_section_id)
 
         instance.quantity = validated_data.get('quantity', instance.quantity)
