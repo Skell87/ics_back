@@ -20,49 +20,114 @@ def get_profile(request):
     serialzer = ProfileSerializer(profile, many=False)
     return Response(serialzer.data)
 
+# original working version with staff
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def register_user(request):
+#     print ('request here', request)
+#     if request.user.is_staff:
+#         serializer = UserSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#     else:
+#         return Response({'message': "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def register_user(request):
-    print ('request here', request)
-    if request.user.is_staff:
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        return Response({'message': "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+# original working
+# @api_view(['GET', 'POST'])
+# @permission_classes([IsAuthenticated])
+# def inventory_detail_list(request):
+#     if request.method == 'GET':
+#         print("Request data:", request.data)
+#         inventory_details = InventoryDetails.objects.all()
+        
+#         serializer = InventoryDetailReadSerializer(inventory_details, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+#     elif request.method == 'POST':
+#         print('INVENTORY DETAIL LIST: POST: REQUEST: ', request.data)
+#         serializer = InventoryDetailSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         print('INVENTORY DETAIL LIST: ERROR: ', serializer.errors)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def inventory_detail_list(request):
+    # user = request.user  # Access the user from the request
     if request.method == 'GET':
         print("Request data:", request.data)
-        inventory_details = InventoryDetails.objects.all()
-        
+        # Only fetch inventory details that belong to the logged-in user
+        inventory_details = InventoryDetails.objects.filter(user=request.user)
         serializer = InventoryDetailReadSerializer(inventory_details, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     elif request.method == 'POST':
         print('INVENTORY DETAIL LIST: POST: REQUEST: ', request.data)
-        serializer = InventoryDetailSerializer(data=request.data)
+        # Ensure new inventory details are associated with the logged-in user
+        serializer = InventoryDetailSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
+            serializer.save()  # Save with the user attached
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         print('INVENTORY DETAIL LIST: ERROR: ', serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)   
+
+# original working
+# @api_view(['DELETE'])
+# @permission_classes([IsAuthenticated])
+# def delete_inventory_item(request, pk):
+#     try:
+#         inventory_item = InventoryDetails.objects.get(pk=pk)
+#     except InventoryDetails.DoesNotExist:
+#         return Response({"error": "Inventory item not found"}, status=status.HTTP_404_NOT_FOUND)
     
+#     quantity_to_delete = request.data.get('quantity_to_delete')
+#     if quantity_to_delete is None:
+#         return Response({"error": "quantity_to_delete field is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+#     try:
+#         quantity_to_delete = int(quantity_to_delete)
+#         if quantity_to_delete <= 0:
+#             return Response({"error": "quantity_to_delete must be a positive integer"}, status=status.HTTP_400_BAD_REQUEST)
+        
+#         if quantity_to_delete > inventory_item.quantity:
+#             return Response({"error": "Quantity to delete exceeds available quantity"}, status=status.HTTP_400_BAD_REQUEST)
+        
+#         inventory_item.quantity -= quantity_to_delete
+#         if inventory_item.quantity <= 0:
+#             inventory_item.delete()
+#         else:
+#             inventory_item.save()
+        
+#         return Response({'message': 'Inventory item updated successfully'}, status=status.HTTP_200_OK)
+    
+#     except ValueError:
+#         return Response({"error": "quantity_to_delete must be a valid integer"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['DELETE'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def delete_inventory_item(request, pk):
+    user = request.user  # Access the user from the request
     try:
-        inventory_item = InventoryDetails.objects.get(pk=pk)
+        # Ensure that only inventory items belonging to the logged-in user are accessible
+        inventory_item = InventoryDetails.objects.get(pk=pk, user=user)
     except InventoryDetails.DoesNotExist:
-        return Response({"error": "Inventory item not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Inventory item not found or not accessible"}, status=status.HTTP_404_NOT_FOUND)
     
     quantity_to_delete = request.data.get('quantity_to_delete')
     if quantity_to_delete is None:
@@ -87,17 +152,16 @@ def delete_inventory_item(request, pk):
     except ValueError:
         return Response({"error": "quantity_to_delete must be a valid integer"}, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['PUT'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def update_inventory_item(request, pk):
     print('update info:', request.data)
     try:
-        inventory_detail = InventoryDetails.objects.get(pk=pk)
+        inventory_detail = InventoryDetails.objects.get(pk=pk, user=request.user)
     except InventoryDetails.DoesNotExist:
         return Response({'error': 'Inventory detail not found'}, status=status.HTTP_404_NOT_FOUND)
     
-    serializer = InventoryDetailUpdateSerializer(inventory_detail, data=request.data)
+    serializer = InventoryDetailUpdateSerializer(inventory_detail, data=request.data, context={'user': request.user})
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
@@ -106,94 +170,201 @@ def update_inventory_item(request, pk):
 
 # ====================================================================================================
 # these are currently for populating the dropdowns.
+
+# original working
+# @api_view(['POST', 'GET'])
+# @permission_classes([IsAuthenticated])
+# def add_warehouse_section(request):
+#     if request.method == 'GET':
+#         sections = WarehouseSection.objects.all()
+#         serializer = WarehouseSectionSerializer(sections, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+#     elif request.method == 'POST':
+#         print("Received POST request data:", request.data)
+#         serializer = WarehouseSectionSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         else:
+#             return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['POST', 'GET'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def add_warehouse_section(request):
+    user = request.user
     if request.method == 'GET':
-        sections = WarehouseSection.objects.all()
+        # Filter sections to only those belonging to the authenticated user
+        sections = WarehouseSection.objects.filter(user=user)
         serializer = WarehouseSectionSerializer(sections, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     elif request.method == 'POST':
         print("Received POST request data:", request.data)
-        serializer = WarehouseSectionSerializer(data=request.data)
+        # Include the user in the POST data before passing to the serializer
+        serializer = WarehouseSectionSerializer(data={**request.data, 'user': user.id})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
+
+# original working 
+# @api_view(['GET', 'POST'])
+# @permission_classes([IsAuthenticated])
+# def add_warehouse_sub_section(request):
+#     if request.method == 'GET':
+#         section_id = request.query_params.get('section_id')
+#         if not section_id:
+#             return Response({'error': 'section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
         
+#         subsections = WarehouseSubSection.objects.filter(section_id=section_id)
+#         serializer = WarehouseSubSectionSerializer(subsections, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+#     elif request.method == 'POST':
+#         serializer = WarehouseSubSectionSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['GET', 'POST'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def add_warehouse_sub_section(request):
+    # user = request.user
     if request.method == 'GET':
         section_id = request.query_params.get('section_id')
         if not section_id:
             return Response({'error': 'section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
         
-        subsections = WarehouseSubSection.objects.filter(section_id=section_id)
+        # Ensure subsections are fetched for the user's own sections
+        subsections = WarehouseSubSection.objects.filter(section_id=section_id, user=request.user)
         serializer = WarehouseSubSectionSerializer(subsections, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     elif request.method == 'POST':
-        serializer = WarehouseSubSectionSerializer(data=request.data)
+        # Include user in the POST data before passing to the serializer
+        # This assumes the 'section' field already contains 'section_id' and 'user' is the owner of that section
+        serializer = WarehouseSubSectionSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# original working
+# @api_view(['GET', 'POST'])
+# @permission_classes([IsAuthenticated])
+# def add_warehouse_sub_sub_section(request):
+#     if request.method == 'GET':
+#         sub_section_id = request.query_params.get('sub_section_id')
+#         if not sub_section_id:
+#             return Response({'error': 'sub_section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+#         subsubsections = WarehouseSubSubSection.objects.filter(sub_section_id=sub_section_id)
+#         serializer = WarehouseSubSubSectionSerializer(subsubsections, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+#     elif request.method =='POST':
+#         serializer = WarehouseSubSubSectionSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'POST'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def add_warehouse_sub_sub_section(request):
+    # user = request.user
     if request.method == 'GET':
         sub_section_id = request.query_params.get('sub_section_id')
         if not sub_section_id:
             return Response({'error': 'sub_section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
         
-        subsubsections = WarehouseSubSubSection.objects.filter(sub_section_id=sub_section_id)
+        # Ensure subsubsections are fetched for sub_sections owned by the user
+        subsubsections = WarehouseSubSubSection.objects.filter(sub_section_id=sub_section_id, user=request.user)
         serializer = WarehouseSubSubSectionSerializer(subsubsections, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    elif request.method =='POST':
-        serializer = WarehouseSubSubSectionSerializer(data=request.data)
+    elif request.method == 'POST':
+        # Include user in the POST data before passing to the serializer
+        # This assumes the 'sub_section' field already contains 'sub_section_id' and 'user' is the owner of that subsection
+        serializer = WarehouseSubSubSectionSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# original working
+# @api_view(['DELETE'])
+# @permission_classes([IsAuthenticated])
+# def delete_warehouse_section(request, section_id):
+#     # section_id = request.query_params.get('section_id')
+#     # if not section_id:
+#     #     return Response({'error': 'section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+#     try:
+#         section = WarehouseSection.objects.get(pk=section_id)
+#         section.delete()
+#         return Response({'message': 'Section deleted successfully'}, status=status.HTTP_200_OK)
+#     except WarehouseSection.DoesNotExist:
+#         return Response({'error', 'section not found'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['DELETE'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def delete_warehouse_section(request, section_id):
-    # section_id = request.query_params.get('section_id')
-    # if not section_id:
-    #     return Response({'error': 'section_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+    user = request.user
     try:
-        section = WarehouseSection.objects.get(pk=section_id)
+        # Ensure the section to delete is owned by the authenticated user
+        section = WarehouseSection.objects.get(pk=section_id, user=user)
         section.delete()
         return Response({'message': 'Section deleted successfully'}, status=status.HTTP_200_OK)
     except WarehouseSection.DoesNotExist:
-        return Response({'error', 'section not found'}, status=status.HTTP_404_NOT_FOUND)
-    
+        return Response({'error': 'Section not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
+
+# original working
+# @api_view(['DELETE'])
+# @permission_classes([IsAuthenticated])
+# def delete_warehouse_sub_section(request, sub_section_id):
+#     print('id:', sub_section_id)
+#     try:
+#         subsection = WarehouseSubSection.objects.get(pk=sub_section_id)
+#         subsection.delete()
+#         return Response({'message': 'SubSection deleted successfully'}, status=status.HTTP_200_OK)
+#     except WarehouseSubSection.DoesNotExist:
+#         return Response({'error', 'sub section not found'}, status=status.HTTP_404_NOT_FOUND)
+
 @api_view(['DELETE'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def delete_warehouse_sub_section(request, sub_section_id):
-    print('id:', sub_section_id)
+    user = request.user
     try:
-        subsection = WarehouseSubSection.objects.get(pk=sub_section_id)
+        # Ensure the subsection to delete is owned by the authenticated user
+        subsection = WarehouseSubSection.objects.get(pk=sub_section_id, user=user)
         subsection.delete()
         return Response({'message': 'SubSection deleted successfully'}, status=status.HTTP_200_OK)
     except WarehouseSubSection.DoesNotExist:
-        return Response({'error', 'sub section not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Sub section not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
+
+# original working
+# @api_view(['DELETE'])
+# @permission_classes([IsAuthenticated])
+# def delete_warehouse_sub_sub_section(request, sub_sub_section_id):
+#     try:
+#         subsubsection = WarehouseSubSubSection.objects.get(pk=sub_sub_section_id)
+#         subsubsection.delete()
+#         return Response({'message': 'SubSubSection deleted successfully'}, status=status.HTTP_200_OK)
+#     except WarehouseSubSubSection.DoesNotExist:
+#         return Response({'error', 'sub sub section not found'}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def delete_warehouse_sub_sub_section(request, sub_sub_section_id):
+    user = request.user
     try:
-        subsubsection = WarehouseSubSubSection.objects.get(pk=sub_sub_section_id)
+        # Ensure the subsubsection to delete is owned by the authenticated user
+        subsubsection = WarehouseSubSubSection.objects.get(pk=sub_sub_section_id, user=user)
         subsubsection.delete()
         return Response({'message': 'SubSubSection deleted successfully'}, status=status.HTTP_200_OK)
     except WarehouseSubSubSection.DoesNotExist:
-        return Response({'error', 'sub sub section not found'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Sub sub section not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
