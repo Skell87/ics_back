@@ -8,17 +8,16 @@ class Profile(models.Model):
     first_name = models.CharField(max_length=40)
     last_name = models.CharField(max_length=40)
     email = models.EmailField()
-    is_staff = models.BooleanField(default=False)
 
     def __str__ (self):
         return self.user.username
     
-@receiver(post_save, sender=User)
-def create_or_update_user_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.create(user=instance)
-    else:
-        instance.profile.save()
+# @receiver(post_save, sender=User)
+# def create_or_update_user_profile(sender, instance, created, **kwargs):
+#     if created:
+#         Profile.objects.create(user=instance)
+#     else:
+#         instance.user_profile.save()
 
 
 class InventoryItems(models.Model):
