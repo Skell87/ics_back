@@ -35,13 +35,42 @@ def get_profile(request):
 #         return Response({'message': "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def register_user(request):
-    serializer = UserSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@permission_classes([])
+def register_user(request):  
+    try:
+        # create a user
+        user = User.objects.create(
+            username = request.data['username']
+        )
+        user.set_password(request.data['password'])
+        user.save()
+    except Exception as er:
+        print('OH NO!  OH NO! ', er)
+        user.delete()
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    print('BLAMMO!  USER: ', user.username)
+    print('BLAMMO: REQUEST: ', request.data)
+    # create a profile and attach it to the user!
+    try:
+        profile_data = {
+            'user': user.id,
+            'first_name': request.data['first_name'],
+            'last_name': request.data['last_name'],
+            'email': request.data['email']
+        }
+        profile_data_serializer = ProfileSerializer(data=profile_data)
+        if profile_data_serializer.is_valid():
+            profile_data_serializer.save()
+
+            return Response(profile_data_serializer.data, status=status.HTTP_201_CREATED)
+
+        else:
+            user.delete()
+            return Response(profile_data_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        print('THERE HAS BEEN A TERRIBLE ERROR: ', e)
+
 
 
 # original working
