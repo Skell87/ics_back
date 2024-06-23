@@ -7,6 +7,7 @@ from rest_framework import status, viewsets
 from django.shortcuts import get_object_or_404
 from itertools import product
 from rest_framework.views import APIView
+from django.db import IntegrityError
 
 from .models import *
 from .serializers import *
@@ -44,6 +45,8 @@ def register_user(request):
         )
         user.set_password(request.data['password'])
         user.save()
+    except IntegrityError as er:
+        return Response({'error': 'Username already taken'}, status=status.HTTP_400_BAD_REQUEST)   
     except Exception as er:
         print('OH NO!  OH NO! ', er)
         user.delete()
